@@ -1,0 +1,7 @@
+// vite.config.js - tells Vite to understand React/JSX (Chapter 3).
+import { defineConfig } from "vite";
+import react from "@vitejs/plugin-react";
+
+export default defineConfig({
+  plugins: [react()],
+});

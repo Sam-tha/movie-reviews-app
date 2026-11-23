@@ -1,0 +1,366 @@
+=====================================================================
+ MOVIE REVIEWS APP - STUDY NOTES
+ A full-stack React + Express + MongoDB project, explained step by step
+=====================================================================
+
+"Chapter N" always means a chapter of your React Study Guide.
+Read this file with the code open beside you.
+
+---------------------------------------------------------------------
+ 0. WHAT THE APP DOES
+---------------------------------------------------------------------
+A movie review website. You can:
+  - CREATE a review      (Add Movie page)
+  - READ all reviews     (home page, list of cards)
+  - READ one review      (detail page)
+  - UPDATE a review      (Edit page)
+  - DELETE a review      (button on detail page)
+
+Three programs work together:
+
+   React (browser, port 5173)  <-->  Express (server, port 8000)  <-->  MongoDB (database)
+
+React never talks to MongoDB directly. It sends HTTP requests to Express,
+and Express reads/writes MongoDB.
+
+---------------------------------------------------------------------
+ 1. HOW TO RUN IT
+---------------------------------------------------------------------
+You need Node.js and MongoDB installed and MongoDB running locally
+(or a MongoDB Atlas connection string).
+
+Terminal 1 - backend:
+    cd backend
+    npm install
+    npm start
+  You should see: "Connected to MongoDB" and "Server running at http://localhost:8000"
+
+Terminal 2 - frontend:
+    cd frontend
+    npm install
+    npm run dev
+  Open the address Vite prints (usually http://localhost:5173).
+
+If you use MongoDB Atlas, put your connection string in backend/db.js
+(replace the MONGO_URL value), or set the MONGO_URL environment variable.
+
+---------------------------------------------------------------------
+ 2. FOLDER STRUCTURE
+---------------------------------------------------------------------
+movie-reviews-app/
+  backend/
+    server.js              entry point, starts Express
+    db.js                  connects to MongoDB
+    models/Movie.js        the schema (shape of one movie)
+    routes/movieRoutes.js  the 5 CRUD routes
+    package.json
+  frontend/
+    index.html             the ONE real HTML page (Chapter 2)
+    vite.config.js         Vite settings (Chapter 3)
+    package.json
+    src/
+      main.jsx             entry point, renders <App /> inside BrowserRouter
+      App.jsx              root component: Navbar + routes
+      AppRoutes.jsx        URL -> page mapping
+      global.css           the single stylesheet
+      components/          small reusable pieces
+        Navbar.jsx
+        MovieCard.jsx
+        MovieForm.jsx
+      pages/               one component per screen
+        MovieList.jsx
+        MovieDetail.jsx
+        AddMovie.jsx
+        EditMovie.jsx
+
+"Components" are reusable pieces; "pages" are components that fill the
+whole screen for a route. Both are just functional components (Chapter 7).
+
+---------------------------------------------------------------------
+ 3. BACKEND, FILE BY FILE
+---------------------------------------------------------------------
+
+db.js
+  Connects to MongoDB with mongoose.connect(). It is in its own file so
+  the connection logic is easy to find. It is async/await because
+  connecting takes time. If it fails the server exits, because an API
+  with no database is useless.
+
+models/Movie.js
+  A SCHEMA describes what one movie looks like: title, director, year,
+  rating, review, createdAt. "required: true" means MongoDB refuses to
+  save a movie without it. rating has min 1 / max 10. createdAt has a
+  default (Date.now), so we never send it ourselves.
+  mongoose.model("Movie", schema) gives us the Movie object, which has
+  the methods Movie.find(), Movie.create(), etc.
+  Link to guide: Chapter 11 - an array of objects with an _id. MongoDB
+  adds _id automatically to every movie. That is the _id we use as key
+  in React.
+
+routes/movieRoutes.js
+  The five CRUD routes. Each one has the same three steps:
+    1) read the request  2) talk to the database  3) send a response.
+  Routes are written as "/" and "/:id" because server.js mounts them
+  under "/movies".
+
+server.js
+  - app.use(cors())          lets the React app (port 5173) call us (port 8000).
+                             Without it the browser blocks the request.
+  - app.use(express.json())  turns JSON from the request body into req.body.
+  - app.use("/movies", movieRoutes)  mounts the routes.
+  - connectDB().then(listen)  connects to the DB first, then starts listening.
+
+HTTP status codes used:
+  200 OK (default)   201 Created   400 Bad request (bad data / bad id)
+  404 Not found      500 Server error
+
+---------------------------------------------------------------------
+ 4. FRONTEND, FILE BY FILE
+---------------------------------------------------------------------
+
+index.html (Chapter 2)
+  Contains <div id="root">. React takes over this div.
+
+main.jsx (Chapters 2, 9, 25)
+  createRoot(...).render(<App />) puts the app on the page.
+  <BrowserRouter> wraps the app ONCE so routing works everywhere.
+  import "./global.css" loads the stylesheet for the whole app.
+
+App.jsx (Chapter 10 - composition)
+  Returns ONE root <div> (JSX rule, Chapter 4) containing <Navbar /> and
+  <AppRoutes />. It is built entirely from other components.
+
+AppRoutes.jsx (Chapters 26, 29)
+  <Routes> picks the single <Route> that matches the URL:
+    /            -> MovieList
+    /add         -> AddMovie
+    /movie/:id   -> MovieDetail   (dynamic route: :id changes)
+    /edit/:id    -> EditMovie
+
+components/Navbar.jsx (Chapter 27)
+  Two <NavLink>s. NavLink is React Router's <a>: it changes the URL without
+  reloading the page. NavLink also adds the CSS class "active" to the link
+  of the current page; global.css styles ".nav-link.active".
+
+components/MovieCard.jsx (Chapters 13, 14)
+  Props: ({ id, title, director, year, rating }). It only DISPLAYS data
+  its parent gave it. It never changes its props (props are read-only).
+  The link uses a template string: to={`/movie/${id}`}.
+
+components/MovieForm.jsx (Chapters 16, 20-24)
+  The form used by both Add and Edit (that is why it is a component: reuse).
+  - five useState hooks, one per field
+  - every input is CONTROLLED: value={title} + onChange={(e) => setTitle(e.target.value)}
+  - handleSubmit calls e.preventDefault() so the page does not reload
+  - then it calls onSave(...), a function passed in as a prop. This is the
+    "parent passes a function down, child calls it" pattern from Chapter 14.
+  - Number(year) / Number(rating): inputs always give strings, but the
+    schema wants numbers.
+
+pages/MovieList.jsx (Chapters 12, 16, 19, 35, 36)
+  - useState([]) holds the movies, useState(true) holds "loading"
+  - useEffect(..., []) runs once when the page appears and fetches
+    GET /movies, then calls setMovies(data) -> re-render with the data
+  - movies.map(...) creates a <MovieCard key={movie._id} .../> for each one
+  - nested ternaries show: "Loading..." / "No movies yet" / the list
+
+pages/MovieDetail.jsx (Chapters 28, 30, 35, 36)
+  - useParams() gives { id } from /movie/:id
+  - useEffect fetches GET /movies/:id
+  - movie starts as null, and the ternary shows "Loading..." until it
+    arrives. If we skipped that, movie.title would crash on null.
+  - handleDelete sends DELETE, then navigate("/")
+
+pages/AddMovie.jsx (Chapter 28)
+  Renders <MovieForm> with empty starting values. handleSave sends POST,
+  then navigate("/") (the clean-up step).
+
+pages/EditMovie.jsx
+  Fetches the existing movie first, THEN shows <MovieForm> filled with it.
+  The form must appear only after the data loads, because
+  useState(initialData.title) only reads its starting value on the very
+  first render. handleSave sends PUT, then navigates to the detail page.
+
+global.css (Chapter 9)
+  One stylesheet. Class names in the CSS match the className values in the JSX.
+
+---------------------------------------------------------------------
+ 5. DATA FLOW: FORM -> BACKEND -> MONGODB -> UI
+---------------------------------------------------------------------
+Creating a movie, step by step:
+
+ 1. User types in the form. Every keystroke runs onChange -> setTitle(...)
+    and React re-renders. State always matches what is on screen.
+ 2. User clicks "Add Movie". The browser fires the form's onSubmit.
+ 3. handleSubmit runs: e.preventDefault(), then onSave({...}).
+ 4. onSave is AddMovie's handleSave. It runs fetch("http://localhost:8000/movies",
+    { method: "POST", body: JSON.stringify(movieData) }).
+ 5. The request travels to Express. cors() allows it, express.json()
+    puts the data in req.body.
+ 6. The POST route calls Movie.create(req.body). Mongoose checks the schema
+    and saves a document in MongoDB, adding _id and createdAt.
+ 7. Express sends back the saved movie as JSON with status 201.
+ 8. Back in React, navigate("/") shows MovieList.
+ 9. MovieList mounts and its useEffect fetches GET /movies.
+ 10. Express runs Movie.find() and returns the array.
+ 11. setMovies(data) -> re-render -> .map() draws a card per movie,
+     including the new one.
+
+This is the chain from Chapter 31:
+   Form -> onChange -> State -> onSubmit -> preventDefault() -> server
+
+---------------------------------------------------------------------
+ 6. REQUEST / RESPONSE FOR EACH CRUD OPERATION
+---------------------------------------------------------------------
+
+CREATE
+  Request : POST /movies          body: {title, director, year, rating, review}
+  Server  : Movie.create(req.body)
+  Response: 201 + the saved movie   (400 + message if validation fails)
+  React   : AddMovie.handleSave -> navigate("/")
+
+READ ALL
+  Request : GET /movies
+  Server  : Movie.find().sort({ createdAt: -1 })   (newest first)
+  Response: 200 + array of movies
+  React   : MovieList useEffect -> setMovies -> .map() cards
+
+READ ONE
+  Request : GET /movies/65f1...   (the id comes from req.params.id)
+  Server  : Movie.findById(id)
+  Response: 200 + one movie, or 404 + { message: "Movie not found" }
+  React   : MovieDetail useEffect -> setMovie -> show details
+
+UPDATE
+  Request : PUT /movies/65f1...   body: all form fields
+  Server  : Movie.findByIdAndUpdate(id, req.body, { new: true, runValidators: true })
+  Response: 200 + the UPDATED movie (new: true), or 404
+  React   : EditMovie.handleSave -> navigate(`/movie/${id}`)
+
+DELETE
+  Request : DELETE /movies/65f1...
+  Server  : Movie.findByIdAndDelete(id)
+  Response: 200 + { message: "Movie deleted" }, or 404
+  React   : MovieDetail.handleDelete -> navigate("/")
+
+fetch notes:
+  - GET is the default method, so reading needs no options.
+  - response.json() is also async, so it needs await too.
+  - When sending JSON you need BOTH headers { "Content-Type": "application/json" }
+    and body: JSON.stringify(object).
+
+---------------------------------------------------------------------
+ 7. useEffect + fetch EXPLAINED (guide Chapters 35-36)
+---------------------------------------------------------------------
+    useEffect(() => {
+      const getMovies = async () => {
+        const response = await fetch("http://localhost:8000/movies");
+        const data = await response.json();
+        setMovies(data);
+      };
+      getMovies();
+    }, []);
+
+ - useEffect runs code AFTER the component has drawn on the screen.
+ - The empty array [] means "run only once, when the page first appears".
+ - Why not call fetch directly in the component body? Because the body
+   runs on EVERY render, and setMovies causes a render, which would fetch
+   again, forever (an infinite loop).
+ - Why the inner async function? The function given to useEffect should
+   not itself be async, so we define an async function inside and call it.
+ - In MovieDetail the array is [params.id], meaning "run again if the id
+   in the URL changes".
+
+---------------------------------------------------------------------
+ 8. COMMON MISTAKES TO AVOID (guide Chapter 33)
+---------------------------------------------------------------------
+ Mistake                               Where it could happen here
+ ------------------------------------  ---------------------------------------
+ Forgetting return in a component      Any component using { } needs "return"
+ class instead of className            Every styled element uses className
+ Forgetting import                     e.g. useState, NavLink, MovieForm
+ Forgetting export default             Each component file ends with it
+ Lowercase component name              <movieCard /> would NOT work
+ Changing state directly               Always setTitle(...), never title = ...
+ Missing key in .map()                 key={movie._id} in MovieList
+ Typo in a field name                  movie.directer would just show blank
+ onClick={fn()} instead of onClick={fn}  We use onClick={handleDelete}
+ Forgetting e.preventDefault()         The page would reload on submit
+ Link path with no matching Route      /movie/:id link needs the /movie/:id route
+ Input without value={...}             All our inputs are controlled
+ Non-string props without { }          year={movie.year}, not year="..."
+
+ Mistakes specific to full-stack (new in this project):
+ - Forgetting cors() on the server: the browser shows a CORS error.
+ - Forgetting express.json(): req.body is undefined.
+ - Forgetting the Content-Type header in fetch: Express cannot read the body.
+ - MongoDB not running: the backend exits with "MongoDB connection failed".
+ - Backend not running: the page stays on "Loading..." (check the browser
+   console / Network tab).
+ - Number inputs return strings: that is why the form uses Number(...).
+
+---------------------------------------------------------------------
+ 9. DEBUGGING TIPS (Chapter 34)
+---------------------------------------------------------------------
+ - Test the backend alone first. With the server running, open
+   http://localhost:8000/movies in the browser. You should see [] or a list.
+ - Browser DevTools -> Network tab shows every fetch, its status code and
+   response.
+ - Browser Console shows JS errors. The backend terminal shows server errors.
+ - Put a console.log at the start of a handler to check it even runs.
+
+---------------------------------------------------------------------
+ 10. TRY THIS YOURSELF
+---------------------------------------------------------------------
+ EASY
+ 1. Add a "genre" field. Change the schema, MovieForm (new useState + input),
+    MovieCard and MovieDetail.
+ 2. Change the logo text in Navbar.jsx and the card color in global.css.
+ 3. In MovieCard, show "Great!" if rating >= 8, otherwise nothing,
+    using a ternary or && (Chapter 19).
+ 4. Add a character counter under the Review textarea ({review.length}).
+
+ MEDIUM
+ 5. Add a "Clear" button (type="button") to MovieForm that resets all five
+    fields with their setters (Chapter 21).
+ 6. Add a /about route and a NavLink for it (Chapters 26-27).
+ 7. On the list page, add a search box (controlled input) that filters the
+    movies by title. Hint: movies.filter(...) before .map().
+ 8. Add a Cancel button in EditMovie that calls navigate(-1) to go back.
+
+ HARDER
+ 9. Show an error message in the form if the backend returns an error
+    (check response.ok, store the message in state, show it with a ternary).
+ 10. Add a backend route that returns only movies with rating >= 8, and a
+     button on the list page that fetches it.
+ 11. Replace fetch with Axios in one page (npm install axios) and compare.
+
+---------------------------------------------------------------------
+ 11. SELF-CHECK QUESTIONS (for your viva / defending the homework)
+---------------------------------------------------------------------
+ 1. Why does the Express server need cors()?
+ 2. What is the difference between MovieCard's props and MovieForm's state?
+ 3. Why does MovieForm get its data through initialData and call onSave?
+ 4. Why does EditMovie wait for the movie before showing the form?
+ 5. Why is the [] needed in useEffect?
+ 6. Which HTTP method and which Mongoose function does each CRUD action use?
+ 7. What would happen if we removed e.preventDefault() from handleSubmit?
+ 8. Why must MovieList use key={movie._id}?
+ 9. What does :id mean in /movie/:id, and how does the component read it?
+ 10. Why does MovieDetail check movie === null before using movie.title?
+
+ Short answers:
+ 1. Frontend and backend run on different ports; browsers block that
+    unless the server allows it.
+ 2. Props come from the parent and are read-only; state is owned by the
+    component and changed with its setter.
+ 3. So one form works for both Add and Edit; the parent decides what
+    happens on save.
+ 4. useState only uses its starting value on the first render.
+ 5. So the fetch runs once instead of after every render.
+ 6. POST/create, GET/find, GET/findById, PUT/findByIdAndUpdate,
+    DELETE/findByIdAndDelete.
+ 7. The page would reload and React state would be lost.
+ 8. So React can track which card is which when the list changes.
+ 9. A placeholder segment matching any value; useParams() returns it.
+ 10. The first render happens before data arrives; null.title would crash.
