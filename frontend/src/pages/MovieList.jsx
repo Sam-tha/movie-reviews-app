@@ -1,6 +1,7 @@
 // MovieList.jsx - READ ALL. Fetches every movie from the backend and shows a card for each.
 import { useState, useEffect } from "react";
 import MovieCard from "../components/MovieCard";
+import { MOVIES_URL } from "../api";
 
 const MovieList = () => {
   // Starts as an empty array; we fill it after the data arrives from the backend.
@@ -11,7 +12,7 @@ const MovieList = () => {
   // This is where we load data from the backend.
   useEffect(() => {
     const getMovies = async () => {
-      const response = await fetch("http://localhost:8000/movies"); // GET request
+      const response = await fetch(MOVIES_URL); // GET request
       const data = await response.json(); // turn the JSON text into a JS array
       setMovies(data); // saving it in state triggers a re-render with the data
       setLoading(false);

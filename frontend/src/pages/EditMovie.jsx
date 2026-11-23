@@ -2,6 +2,7 @@
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import MovieForm from "../components/MovieForm";
+import { MOVIES_URL } from "../api";
 
 const EditMovie = () => {
   const params = useParams();
@@ -11,7 +12,7 @@ const EditMovie = () => {
   // First load the current movie so we can pre-fill the form.
   useEffect(() => {
     const getMovie = async () => {
-      const response = await fetch(`http://localhost:8000/movies/${params.id}`);
+      const response = await fetch(`${MOVIES_URL}/${params.id}`);
       const data = await response.json();
       setMovie(data);
     };
@@ -19,7 +20,7 @@ const EditMovie = () => {
   }, [params.id]);
 
   const handleSave = async (movieData) => {
-    await fetch(`http://localhost:8000/movies/${params.id}`, {
+    await fetch(`${MOVIES_URL}/${params.id}`, {
       method: "PUT", // PUT = update
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(movieData),

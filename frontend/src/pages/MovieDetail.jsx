@@ -1,6 +1,7 @@
 // MovieDetail.jsx - READ ONE + DELETE. Shows a single movie's full review.
 import { useState, useEffect } from "react";
 import { useParams, useNavigate, NavLink } from "react-router-dom";
+import { MOVIES_URL } from "../api";
 
 const MovieDetail = () => {
   const params = useParams(); // reads :id from the URL /movie/:id (Chapter 30)
@@ -10,7 +11,7 @@ const MovieDetail = () => {
   // Load the one movie whose id is in the URL.
   useEffect(() => {
     const getMovie = async () => {
-      const response = await fetch(`http://localhost:8000/movies/${params.id}`);
+      const response = await fetch(`${MOVIES_URL}/${params.id}`);
       const data = await response.json();
       setMovie(data);
     };
@@ -23,7 +24,7 @@ const MovieDetail = () => {
     if (!sure) {
       return;
     }
-    await fetch(`http://localhost:8000/movies/${params.id}`, {
+    await fetch(`${MOVIES_URL}/${params.id}`, {
       method: "DELETE",
     });
     navigate("/"); // go back to the list after deleting

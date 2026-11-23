@@ -193,7 +193,7 @@ Creating a movie, step by step:
     and React re-renders. State always matches what is on screen.
  2. User clicks "Add Movie". The browser fires the form's onSubmit.
  3. handleSubmit runs: e.preventDefault(), then onSave({...}).
- 4. onSave is AddMovie's handleSave. It runs fetch("http://localhost:8000/movies",
+ 4. onSave is AddMovie's handleSave. It runs fetch(MOVIES_URL,
     { method: "POST", body: JSON.stringify(movieData) }).
  5. The request travels to Express. cors() allows it, express.json()
     puts the data in req.body.

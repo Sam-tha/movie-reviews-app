@@ -13,19 +13,29 @@ const MovieForm = ({ initialData, buttonText, onSave }) => {
   const [year, setYear] = useState(initialData.year);
   const [rating, setRating] = useState(initialData.rating);
   const [review, setReview] = useState(initialData.review);
+  const [error, setError] = useState("");
+  const [saving, setSaving] = useState(false);
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault(); // stop the browser from reloading the page (Chapter 24)
+    setError("");
+    setSaving(true);
 
     // Gather the state values into one object and give it to the parent.
     // Number() converts the text from the inputs into real numbers.
-    onSave({
-      title: title,
-      director: director,
-      year: Number(year),
-      rating: Number(rating),
-      review: review,
-    });
+    try {
+      await onSave({
+        title: title,
+        director: director,
+        year: Number(year),
+        rating: Number(rating),
+        review: review,
+      });
+    } catch (saveError) {
+      setError(saveError.message || "Unable to save the movie.");
+    } finally {
+      setSaving(false);
+    }
   };
 
   return (
@@ -93,8 +103,9 @@ const MovieForm = ({ initialData, buttonText, onSave }) => {
         ></textarea>
       </div>
 
-      <button className="button" type="submit">
-        {buttonText}
+      {error && <p role="alert">{error}</p>}
+      <button className="button" type="submit" disabled={saving}>
+        {saving ? "Saving..." : buttonText}
       </button>
     </form>
   );
