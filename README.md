@@ -10,14 +10,17 @@ A React app for creating, browsing, editing, and deleting movie reviews, with an
 
 The local frontend defaults to the API at `http://localhost:8000`.
 
-## Deploy
+## Deploy to Amazon Linux
 
-Deploy the backend and MongoDB separately, then configure the frontend build with:
+The repo includes `deploy-movie-reviews.sh` for an Amazon Linux server with `dnf`, `systemd`, and Nginx. It deploys this repository, builds the `frontend`, runs `backend/server.js` as a systemd service, and proxies `/movies` to the API. Production uses the same-origin API path, so no frontend API URL setting is required.
 
-```text
-VITE_API_URL=https://your-backend.example.com
+On a dedicated server, run:
+
+```bash
+chmod +x deploy-movie-reviews.sh
+sudo ./deploy-movie-reviews.sh
 ```
 
-Set this variable in the frontend hosting provider and rebuild/redeploy the frontend. Use the backend's origin only (no `/movies` suffix); the app adds `/movies` to it. The backend must allow requests from the frontend's origin via CORS.
+The script prompts for `MONGO_URL` without echoing it and stores it in `/etc/movie-reviews.env` with root-only permissions. Use a persistent MongoDB service (for example, MongoDB Atlas); the default database URL is local to the server and is not appropriate for a deployment unless MongoDB is installed there.
 
-The app's default MongoDB connection is local to the backend machine. For a hosted backend, set `MONGO_URL` to a persistent MongoDB service so reviews remain available across backend restarts and deployments.
+The server must allow inbound HTTP on port 80. For HTTPS, configure a TLS certificate and Nginx HTTPS listener before exposing the app publicly. The script replaces Nginx's default site configuration, so use it only on a dedicated host.

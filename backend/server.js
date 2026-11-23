@@ -5,7 +5,7 @@ import connectDB from "./db.js";
 import movieRoutes from "./routes/movieRoutes.js";
 
 const app = express();
-const PORT = 8000; // React (Vite) runs on 5173, so the backend uses a different port
+const PORT = Number(process.env.PORT || 8000); // React (Vite) runs on 5173, so the backend uses a different port
 
 // Middleware = code that runs on every request BEFORE our routes.
 app.use(cors());         // allows the React app (another port) to call this server
